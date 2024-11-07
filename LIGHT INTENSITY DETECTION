@@ -1,0 +1,27 @@
+from machine import ADC, Pin
+import time
+
+# Set up ADC on LDR pin
+ldr = ADC(Pin(26))  # Using ADC0 on the Raspberry Pi Pico, update if needed
+
+def read_light_intensity():
+    """
+    Reads the light intensity value from the LDR.
+    Returns an integer from 0 (no light) to 65535 (bright light).
+    """
+    # Read raw value from LDR (0 to 65535 range for 16-bit resolution)
+    raw_value = ldr.read_u16()
+    
+    # Convert to a percentage for easier interpretation (optional)
+    intensity_percentage = (raw_value / 65535) * 100
+    return raw_value, intensity_percentage
+
+# Test reading light intensity
+try:
+    while True:
+        raw_value, intensity = read_light_intensity()
+        print(f"Raw LDR Value: {raw_value}, Light Intensity: {intensity:.2f}%")
+        time.sleep(1)  # Delay to allow for easier reading
+
+except KeyboardInterrupt:
+    print("Program stopped")
