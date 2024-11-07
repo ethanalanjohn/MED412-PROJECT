@@ -1,22 +1,53 @@
-# Example list of recorded light intensity readings
-light_readings = [1200, 3400, 2750, 5100, 4500, 6000, ...]  # Example data
+from machine import ADC, Pin
+import time
 
-def find_max_intensity_position(light_readings):
+# Set up ADC on LDR pin
+ldr = ADC(Pin(28))  # Using ADC0 on the Raspberry Pi Pico, update if needed
+
+def read_light_intensity():
     """
-    Finds the angle (position) with the maximum light intensity.
-    Returns the maximum intensity value and the angle where it occurs.
+    Reads the light intensity value from the LDR.
+    Returns the raw value.
     """
-    # Find the maximum intensity and its index
-    max_intensity = max(light_readings)
-    max_index = light_readings.index(max_intensity)
+    # Read raw value from LDR (0 to 65535 range for 16-bit resolution)
+    raw_value = ldr.read_u16()
+    return raw_value
 
-    # Calculate the angle (in degrees) based on the index
-    angle = max_index * (360 / len(light_readings))  # Each reading represents an equal angle
+# List to store previous raw values
+light_readings = []
+max_intensity = 0
+max_timestamp = None  # Variable to store the timestamp of the max intensity
 
-    return max_intensity, angle
+start_time = time.time()  # Record the start time
+duration = 0.5  # Set duration for 0.5 seconds
 
-# Run the function to find the maximum intensity position
-max_intensity, angle = find_max_intensity_position(light_readings)
+try:
+    while time.time() - start_time < duration:
+        # Read the current light intensity
+        raw_value = read_light_intensity()
+        
+        # Append the current raw value to the array
+        light_readings.append(raw_value)
+        
+        # Check if the current reading is the maximum
+        if raw_value > max_intensity:
+            max_intensity = raw_value
+            max_timestamp = time.localtime()  # Record the system time at max intensity
+        
+        # Print the current raw value
+        print(f"Current Raw LDR Value: {raw_value}")
+        
+        # Delay for a short interval before the next reading
+        time.sleep(0.1)
 
-# Output the results
-print(f"Maximum Light Intensity: {max_intensity} at {angle:.2f} degrees")
+    # Print the maximum intensity and the system time it was recorded
+    if max_timestamp:
+        # Extract components of the timestamp
+        year, month, day, hour, minute, second, _, _ = max_timestamp
+        print(f"Maximum Light Intensity: {max_intensity} at {year}-{month:02}-{day:02} {hour:02}:{minute:02}:{second:02}")
+    else:
+        print("No readings recorded within the time frame.")
+
+except KeyboardInterrupt:
+    print("Program stopped")
+
