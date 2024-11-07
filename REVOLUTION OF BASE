@@ -1,16 +1,25 @@
 from machine import Pin, PWM
 import time
+from light_sensor import get_max_intensity_and_angle  # Import the function to get max intensity and angle
 
 # Define GPIO pins for motor control (using L298N motor driver)
-IN1_PIN = 2  # Update as necessary
-IN2_PIN = 3
-ENA_PIN = 0  # PWM-capable pin for speed control
+IN1_PIN = 6
+IN2_PIN = 7
+ENA_PIN = 8  # PWM-capable pin for speed control
 
 # Set up motor control pins
 in1 = Pin(IN1_PIN, Pin.OUT)
 in2 = Pin(IN2_PIN, Pin.OUT)
 ena = PWM(Pin(ENA_PIN))  # Enable pin set as PWM for speed control
 ena.freq(50)             # Set PWM frequency to 50 Hz
+
+# Constants for rotation
+ROTATION_DURATION = 1.5  # Time for a full 360-degree rotation in seconds
+FULL_ROTATION_DEGREES = 360
+MAX_ROTATIONS = 2  # Only rotate the motor 2 times
+
+# Variable to store the start time of the rotation
+rotation_start_time = None
 
 def motor_start():
     """ Start the motor to rotate in one direction """
@@ -26,17 +35,59 @@ def motor_stop():
 
 def rotate_base():
     """
-    Rotates the base 360 degrees in 36 seconds.
+    Rotates the base 360 degrees in ROTATION_DURATION seconds.
     """
+    global rotation_start_time
     print("Starting rotation...")
+    rotation_start_time = time.time()  # Record the start time of the rotation
     motor_start()
-    time.sleep(1.5)  # Rotate for 36 seconds (adjust if needed for a precise 360° turn)
+    time.sleep(ROTATION_DURATION)  # Rotate for ROTATION_DURATION seconds for a full 360° turn
     motor_stop()
     print("Rotation complete.")
 
-# Test the rotation function
+def get_position_at_time(timestamp):
+    """
+    Calculates the position the motor was at given a specific timestamp.
+    """
+    if rotation_start_time is None:
+        print("Rotation hasn't started yet.")
+        return None
+
+    elapsed_since_start = timestamp - rotation_start_time
+
+    if elapsed_since_start >= 0:
+        rotation_fraction = (elapsed_since_start % ROTATION_DURATION) / ROTATION_DURATION
+        angle_at_timestamp = rotation_fraction * FULL_ROTATION_DEGREES
+        print(f"Position at timestamp {time.localtime(timestamp)} was {angle_at_timestamp:.2f} degrees.")
+        return angle_at_timestamp
+    else:
+        print("Timestamp is before the rotation started.")
+        return None
+
+def return_to_position(angle):
+    """
+    Returns the motor to a specific angle from the current position.
+    """
+    print(f"Returning to position: {angle:.2f} degrees.")
+    target_time = (angle / FULL_ROTATION_DEGREES) * ROTATION_DURATION
+    motor_start()
+    time.sleep(target_time)
+    motor_stop()
+    print("Returned to specified position.")
+
+# Test the rotation function and position return
 try:
-    rotate_base()
+    # Get the maximum light intensity and corresponding angle
+    max_intensity, max_intensity_angle = get_max_intensity_and_angle(rotation_duration=ROTATION_DURATION, max_rotations=MAX_ROTATIONS)
+    print(f"Maximum Light Intensity: {max_intensity} at angle {max_intensity_angle} degrees")
+
+    # Start rotation for exactly 2 complete rotations (720 degrees)
+    for _ in range(MAX_ROTATIONS):
+        rotate_base()
+
+    # Return the motor to the position with the highest light intensity
+    return_to_position(max_intensity_angle)
+
 except KeyboardInterrupt:
     motor_stop()
     print("Program interrupted and motor stopped.")
