@@ -2,7 +2,7 @@ from machine import ADC, Pin
 import time
 
 # Set up ADC on LDR pin
-ldr = ADC(Pin(26))  # Using ADC0 on the Raspberry Pi Pico, update if needed
+ldr = ADC(Pin(28))  # Using ADC0 on the Raspberry Pi Pico, update if needed
 
 def read_light_intensity():
     """
@@ -21,7 +21,11 @@ try:
     while True:
         raw_value, intensity = read_light_intensity()
         print(f"Raw LDR Value: {raw_value}, Light Intensity: {intensity:.2f}%")
-        time.sleep(1)  # Delay to allow for easier reading
+        time.sleep(.01)  # Delay to allow for easier reading
+
+except KeyboardInterrupt:
+    print("Program stopped")
+
 
 except KeyboardInterrupt:
     print("Program stopped")
