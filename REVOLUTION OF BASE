@@ -1,21 +1,28 @@
 from machine import Pin, PWM
 import time
 
-# Set up pins for motor control (L298N driver)
-IN1 = Pin(17, Pin.OUT)  # GPIO pin for IN1
-IN2 = Pin(18, Pin.OUT)  # GPIO pin for IN2
-ENA = PWM(Pin(22))      # PWM for ENA pin (speed control)
-ENA.freq(50)            # Set PWM frequency (50 Hz)
+# Define GPIO pins for motor control (using L298N motor driver)
+IN1_PIN = 2  # Update as necessary
+IN2_PIN = 3
+ENA_PIN = 0  # PWM-capable pin for speed control
 
-# Motor control functions
+# Set up motor control pins
+in1 = Pin(IN1_PIN, Pin.OUT)
+in2 = Pin(IN2_PIN, Pin.OUT)
+ena = PWM(Pin(ENA_PIN))  # Enable pin set as PWM for speed control
+ena.freq(50)             # Set PWM frequency to 50 Hz
+
 def motor_start():
-    IN1.value(1)
-    IN2.value(0)
-    ENA.duty_u16(32768)  # 50% duty cycle to ensure controlled rotation speed
+    """ Start the motor to rotate in one direction """
+    in1.high()
+    in2.low()
+    ena.duty_u16(32768)  # 50% duty cycle to control rotation speed
 
 def motor_stop():
-    IN1.value(0)
-    IN2.value(0)
+    """ Stops the motor """
+    in1.low()
+    in2.low()
+    ena.duty_u16(0)  # Set PWM duty to 0 to stop the motor
 
 def rotate_base():
     """
@@ -23,6 +30,13 @@ def rotate_base():
     """
     print("Starting rotation...")
     motor_start()
-    time.sleep(36)  # Rotate for 36 seconds
+    time.sleep(1.5)  # Rotate for 36 seconds (adjust if needed for a precise 360° turn)
     motor_stop()
     print("Rotation complete.")
+
+# Test the rotation function
+try:
+    rotate_base()
+except KeyboardInterrupt:
+    motor_stop()
+    print("Program interrupted and motor stopped.")
