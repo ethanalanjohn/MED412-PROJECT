@@ -9,13 +9,16 @@ ENA.freq(50)            # Set PWM frequency (50 Hz)
 
 # Motor control functions
 def motor_start():
+    """ Start the motor in one direction """
     IN1.value(1)
     IN2.value(0)
     ENA.duty_u16(32768)  # 50% duty cycle for controlled rotation speed
 
 def motor_stop():
+    """ Stops the motor """
     IN1.value(0)
     IN2.value(0)
+    ENA.duty_u16(0)  # Stop the motor by setting duty to 0
 
 def turn_motor_to_angle(angle):
     """
@@ -39,4 +42,6 @@ def turn_motor_to_angle(angle):
 # Example usage:
 # Assuming `angle` is the angle with maximum light intensity
 angle = 45  # Replace this with the angle found from previous calculations
+
 turn_motor_to_angle(angle)
+
