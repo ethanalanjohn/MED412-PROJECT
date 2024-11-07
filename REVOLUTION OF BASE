@@ -1,0 +1,28 @@
+from machine import Pin, PWM
+import time
+
+# Set up pins for motor control (L298N driver)
+IN1 = Pin(17, Pin.OUT)  # GPIO pin for IN1
+IN2 = Pin(18, Pin.OUT)  # GPIO pin for IN2
+ENA = PWM(Pin(22))      # PWM for ENA pin (speed control)
+ENA.freq(50)            # Set PWM frequency (50 Hz)
+
+# Motor control functions
+def motor_start():
+    IN1.value(1)
+    IN2.value(0)
+    ENA.duty_u16(32768)  # 50% duty cycle to ensure controlled rotation speed
+
+def motor_stop():
+    IN1.value(0)
+    IN2.value(0)
+
+def rotate_base():
+    """
+    Rotates the base 360 degrees in 36 seconds.
+    """
+    print("Starting rotation...")
+    motor_start()
+    time.sleep(36)  # Rotate for 36 seconds
+    motor_stop()
+    print("Rotation complete.")
