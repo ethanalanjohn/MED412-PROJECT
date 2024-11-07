@@ -1,31 +1,41 @@
-from machine import ADC, Pin
+from machine import Pin, ADC
 import time
 
-# Set up ADC on LDR pin
-ldr = ADC(Pin(28))  # Using ADC0 on the Raspberry Pi Pico, update if needed
+# Set up the light sensor (assuming it's an analog sensor connected to GPIO pin)
+LIGHT_SENSOR_PIN = 28  # Change the pin if necessary
+light_sensor = ADC(Pin(LIGHT_SENSOR_PIN))
 
-def read_light_intensity():
+# Function to get maximum light intensity and the corresponding motor angle
+def get_max_intensity_and_angle(rotation_duration=1.5, max_rotations=2, sample_rate=0.1):
     """
-    Reads the light intensity value from the LDR.
-    Returns an integer from 0 (no light) to 65535 (bright light).
-    """
-    # Read raw value from LDR (0 to 65535 range for 16-bit resolution)
-    raw_value = ldr.read_u16()
+    Sample the light intensity at fixed intervals and the corresponding motor angle during the rotation.
+    Returns the maximum light intensity and its corresponding motor angle.
     
-    # Convert to a percentage for easier interpretation (optional)
-    intensity_percentage = (raw_value / 65535) * 100
-    return raw_value, intensity_percentage
+    - rotation_duration: Duration for one full rotation in seconds
+    - max_rotations: Number of full rotations to perform
+    - sample_rate: Time interval (in seconds) between each sample
+    """
+    max_intensity = 0
+    max_intensity_angle = 0
+    angle_increment = 360 / max_rotations  # Divide 360 degrees into the number of rotations
+    total_samples = int(rotation_duration / sample_rate)  # Number of samples during one full rotation
 
-# Test reading light intensity
-try:
-    while True:
-        raw_value, intensity = read_light_intensity()
-        print(f"Raw LDR Value: {raw_value}, Light Intensity: {intensity:.2f}%")
-        time.sleep(.01)  # Delay to allow for easier reading
+    print(f"Sampling light intensity every {sample_rate} seconds during the rotation...")
 
-except KeyboardInterrupt:
-    print("Program stopped")
-
-
-except KeyboardInterrupt:
-    print("Program stopped")
+    for rotation in range(max_rotations):
+        for sample_num in range(total_samples):
+            # Calculate the current angle based on sample number
+            angle = (sample_num / total_samples) * 360  # Calculate angle for current sample
+            
+            # Read the light sensor value (0-65535 or 0-4095)
+            intensity = light_sensor.read_u16()  # Use read() for ESP32, read_u16() for Pico
+            print(f"Angle {angle:.2f}°: Light Intensity = {intensity}")  # Print the intensity at each angle
+            
+            if intensity > max_intensity:
+                max_intensity = intensity
+                max_intensity_angle = angle  # Record the motor angle at the highest intensity
+            
+            time.sleep(sample_rate)  # Sleep for the fixed sample rate duration
+    
+    print(f"Maximum Light Intensity: {max_intensity} at angle {max_intensity_angle}°")
+    return max_intensity, max_intensity_angle
