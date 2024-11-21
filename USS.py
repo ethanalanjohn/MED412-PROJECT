@@ -1,37 +1,61 @@
 from machine import Pin
-import time
+import utime
 
-# Define the GPIO pins
-TRIG_PIN = 17  # GPIO Pin connected to TRIG of HC-SR04
-ECHO_PIN = 16  # GPIO Pin connected to ECHO of HC-SR04
+# Initialize trigger and echo pins
+trigger = Pin(3, Pin.OUT)
+echo = Pin(2, Pin.IN)
 
-# Set up the TRIG pin as an output and the ECHO pin as an input
-trigger = Pin(TRIG_PIN, Pin.OUT)
-echo = Pin(ECHO_PIN, Pin.IN)
+def get_distance():
+    """
+    Measures the distance to an object using an ultrasonic sensor.
 
-# Function to measure the distance
-def measure_distance():
-    # Send a pulse to the TRIG pin to start the ultrasonic burst
-    trigger.high()
-    time.sleep_us(10)  # Trigger pulse must last at least 10 microseconds
-    trigger.low()
+    Returns:
+        float: Distance to the object in cm, or None if no echo is detected.
+    """
+    try:
+        # Ensure trigger pin is low before starting
+        trigger.low()
+        utime.sleep_us(2)  # Short delay
 
-    # Measure the time it takes for the ECHO pin to go high and then low
-    pulse_duration = time.pulse_us(echo, 1)  # Measure pulse duration in microseconds
+        # Send the trigger pulse (5 microseconds)
+        trigger.high()
+        utime.sleep_us(5)  # Trigger pulse duration
+        trigger.low()
 
-    # The speed of sound is approximately 34300 cm/s, so we calculate the distance
-    # Divide pulse_duration by 2 because it's the round trip (to the object and back)
-    distance = (pulse_duration / 2) * 34300 / 1000000  # Convert to meters
+        # Wait for echo to go HIGH (signal sent)
+        timeout_start = utime.ticks_us()
+        while echo.value() == 0:
+            if utime.ticks_diff(utime.ticks_us(), timeout_start) > 30000:  # Timeout after 30ms
+                print("Timeout: No echo received.")
+                return None
+            signaloff = utime.ticks_us()
 
-    return distance
+        # Wait for echo to go LOW (signal returned)
+        timeout_start = utime.ticks_us()
+        while echo.value() == 1:
+            if utime.ticks_diff(utime.ticks_us(), timeout_start) > 30000:  # Timeout after 30ms
+                print("Timeout: Echo signal stuck HIGH.")
+                return None
+            signalon = utime.ticks_us()
 
-# Main loop
-try:
-    while True:
-        # Get the distance and print it
-        distance = measure_distance()
-        print("Distance to target: {:.2f} meters".format(distance))
-        time.sleep(1)  # Wait before the next measurement
+        # Calculate the time the signal took to travel
+        timepassed = signalon - signaloff
 
-except KeyboardInterrupt:
-    print("Measurement stopped.")
+        # Calculate the distance (in cm)
+        distance = (timepassed * 0.0343) / 2  # Speed of sound is 0.0343 cm per microsecond
+        return distance
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+# Example of how to call the function
+#while True:
+#    print("Measuring distance...")
+#    distance = get_distance()
+ #   if distance is not None:
+  #      print(f"Distance to the object: {distance:.2f} cm")
+   # else:
+    #    print("Failed to measure distance.")
+    ##time.sleep(1)  # Wait before the next measurement
+
